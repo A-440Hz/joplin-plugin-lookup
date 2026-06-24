@@ -1,5 +1,5 @@
 import joplin from 'api';
-import { model } from './model';
+import { appendToHistory, lookupFromDictionaryAPI, model } from './model';
 import { createLookupPanel } from './panel';
 import { MenuItemLocation, SettingItemType, SettingStorage, ToolbarButtonLocation } from 'api/types';
 
@@ -10,20 +10,48 @@ joplin.plugins.register({
 
 		await joplin.settings.registerSection(model.SECTION, {
 			label: 'Lookup',
-			iconName: 'fas fa-magnifying-glass',
+			iconName: 'fas fa-search',
 		}).then(() => {
 			console.info('Registered settings section: ', model.SECTION);
 		});
 
+		// register lookup history
+		await joplin.settings.registerSettings({
+			[model.lookupHistory]: {
+				value: [],
+				type: SettingItemType.Array,
+				section: model.SECTION,
+				public: false,
+				label: "History of lookup queries",
+				storage: SettingStorage.Database,
+			}
+		});
+
+		await joplin.settings.registerSettings({
+			[model.resultsPerPage]: {
+				value: 8,
+				type: SettingItemType.Int,
+				section: model.SECTION,
+				public: true,
+				minimum: 1,
+				step: 1,
+				label: "Number of results to show per page in the lookup panel",
+				storage: SettingStorage.Database,
+			}
+		}).then(() => {
+			console.info('Lookup: Registered resultsPerPage setting: ', joplin.settings.value(model.resultsPerPage));
+		})
 
 		await joplin.commands.register({
 			name: 'lookup',
-			label: 'lookup command',
+			label: 'lookup',
 			execute: async () => {
-				console.log("lookup command executed")
+				console.log("lookup command executed");
 				const selectedText = (await joplin.commands.execute('selectedText') as string);
-				console.log("selectedText: ", selectedText)
-
+				console.log("selectedText: ", selectedText);
+				const res = await lookupFromDictionaryAPI(selectedText);
+				console.log("lookupFromDictionaryAPI result: ", res);
+				await appendToHistory(res);
 				// insert code here
 				/*
 					probably have code in lookup.ts
@@ -75,7 +103,7 @@ joplin.plugins.register({
 		await joplin.commands.register({
 			name: 'toggleLookupPanel',
 			label: 'Toggle Lookup Panel',
-			iconName: 'fas fa-magnifying-glass',
+			iconName: 'fas fa-search',
 			execute: async () => {
 				const isOpen = (await joplin.views.panels.visible(lookupPanel)).valueOf();
 				await joplin.views.panels.show(lookupPanel, !isOpen);				
