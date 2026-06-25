@@ -1,5 +1,5 @@
 import joplin from 'api';
-import { appendToHistory, lookupFromDictionaryAPI, model } from './model';
+import { appendToHistory, model, performPrimaryLookup } from './model';
 import { createLookupPanel } from './panel';
 import { MenuItemLocation, SettingItemType, SettingStorage, ToolbarButtonLocation } from 'api/types';
 
@@ -49,8 +49,8 @@ joplin.plugins.register({
 				console.log("lookup command executed");
 				const selectedText = (await joplin.commands.execute('selectedText') as string);
 				console.log("selectedText: ", selectedText);
-				const res = await lookupFromDictionaryAPI(selectedText);
-				console.log("lookupFromDictionaryAPI result: ", res);
+				const res = await performPrimaryLookup(selectedText);
+				console.log("performPrimaryLookup result: ", res);
 				await appendToHistory(res);
 				// insert code here
 				/*
@@ -65,6 +65,18 @@ joplin.plugins.register({
 			}
 		});
 		
+		await joplin.settings.registerSettings({
+		[model.currentAPIChoice]: {
+			value: 'dictionaryapi.dev',
+			type: SettingItemType.String,
+			section: model.SECTION,
+			public: true,
+			label: "Current API to use for lookups",
+			description: '(applies on restart)',
+			storage: SettingStorage.Database,
+		},
+		});
+
 		await joplin.settings.registerSettings({
 		[model.showToolbarIcon]: {
 			value: true,
