@@ -5,6 +5,7 @@ export namespace model {
     export const lookupHistory = 'PL_LookupHistory';
     export const resultsPerPage = "PL_ResultsPerPage";
     export const currentAPIChoice = "PL_CurrentAPIChoice";
+    export const fallbackAPIChoice = "PL_FallbackAPIChoice";
     export const lookupHistoryKey = 'PL_LookupHistoryKey';
 
     // user preferences
@@ -18,7 +19,7 @@ export namespace model {
 
 const defaultAPI = model.dictionaryAPI;
 
-// Custom error types for different lookup scenarios
+// Custom error types to inform lookup fallback behavior
 class QueryError extends Error {
     constructor(message: string) {
         super(message);
@@ -36,7 +37,7 @@ class APIError extends Error {
 const DICTIONARY_API_BASE = 'https://api.dictionaryapi.dev/api/v2/entries/en/';
 const WIKIPEDIA_API_BASE = 'https://en.wikipedia.org/api/rest_v1/page/summary/';
 
-const lookupAPIMap: Record<string, (query: string) => Promise<LookupItem>> = {
+export const lookupAPIMap: Record<string, (query: string) => Promise<LookupItem>> = {
     [model.dictionaryAPI]: lookupFromDictionaryAPI,
     [model.wikipediaAPI]: lookupFromWikipediaAPI,
 };
@@ -63,12 +64,12 @@ export interface LookupItem {
     source: string;
 }
 
-function createErrorLookup(query: string, err: Error): LookupItem {
+function createErrorLookup(query: string, err: Error, source: string): LookupItem {
     return {
         query,
         descriptor: "Error: " + err.message,
         meanings: [],
-        source: "error",
+        source: source,
     };
 }
 
@@ -82,7 +83,16 @@ type DictionaryAPIMeaning = {
 async function performFallbackLookup(query: string): Promise<LookupItem> {
     // get the fallbackAPIChoice. it would be a map of keys to functions
     // see if i can make it non-duplicable as an enum choice
-    return createErrorLookup(query, new Error("Failed to fetch data from primary API"));
+    const apiChoice = (await joplin.settings.value(model.fallbackAPIChoice) as string) || defaultAPI;
+    const apiFn = lookupAPIMap[apiChoice];
+    try {
+        return await apiFn(query);
+    } catch (error) {
+        if (error instanceof QueryError) {
+            return createErrorLookup(query, error as QueryError, apiChoice);
+        }
+    }
+    return createErrorLookup(query, new Error("Failed to fetch data"), apiChoice);
 }
 
 export async function performPrimaryLookup(query: string): Promise<LookupItem> {
@@ -94,7 +104,7 @@ export async function performPrimaryLookup(query: string): Promise<LookupItem> {
     } catch (error) {
         // Return error immediately if query was bad
         if (error instanceof QueryError) {
-            return createErrorLookup(query, error as QueryError);
+            return createErrorLookup(query, error as QueryError, apiChoice);
         }
         // initiate fallback for API errors
         return performFallbackLookup(query);
@@ -169,16 +179,14 @@ export async function lookupFromWikipediaAPI(query: string): Promise<LookupItem>
         }
 
         const data = await response.json();
-        if (!Array.isArray(data) || data.length === 0) {
-            throw new APIError("No results found for this query");
+        if (!data || typeof data !== 'object') {
+            throw new APIError("Invalid Wikipedia API response");
         }
-
-        const entry = data[0];
 
         return {
             query: trimmedQuery,
-            descriptor: entry.description? entry.description : undefined,
-            meanings: [entry.extract ? { definitions: [{ definition: entry.extract }] } : { definitions: [] } ],
+            descriptor: data.description? data.description : undefined,
+            meanings: [data.extract ? { definitions: [{ definition: data.extract }] } : { definitions: [] } ],
             source: "Wikipedia API",
         };
     } catch (error) {

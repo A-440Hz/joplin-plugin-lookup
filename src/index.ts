@@ -1,6 +1,6 @@
 import joplin from 'api';
-import { appendToHistory, model, performPrimaryLookup } from './model';
-import { createLookupPanel } from './panel';
+import { appendToHistory, lookupAPIMap, model, performPrimaryLookup } from './model';
+import { createLookupPanel, reloadHistoryFromSettings, showLookupPanel } from './panel';
 import { MenuItemLocation, SettingItemType, SettingStorage, ToolbarButtonLocation } from 'api/types';
 
 joplin.plugins.register({
@@ -43,6 +43,19 @@ joplin.plugins.register({
 		})
 
 		await joplin.commands.register({
+			name: 'showLookupHistory',
+			label: 'Show Lookup History',
+			iconName: 'fas fa-history',
+			execute: async () => {
+				await reloadHistoryFromSettings();
+				await showLookupPanel();
+			}
+		})
+
+		await joplin.views.toolbarButtons.create('showLookupHistory', 'showLookupHistory', ToolbarButtonLocation.NoteToolbar);
+
+
+		await joplin.commands.register({
 			name: 'lookup',
 			label: 'lookup',
 			execute: async () => {
@@ -52,27 +65,44 @@ joplin.plugins.register({
 				const res = await performPrimaryLookup(selectedText);
 				console.log("performPrimaryLookup result: ", res);
 				await appendToHistory(res);
-				// insert code here
-				/*
-					probably have code in lookup.ts
-					open panel if closed 
-					query the current api choice and put result item in appropriate model object
-					append to lookup history, refresh panel
-					does pagination use binary search? probably has some package 
-						array.slice maybe a good option
-				*/
-
+				await reloadHistoryFromSettings();
+				await showLookupPanel();
 			}
 		});
 		
+				const apiChoices: Record<string, string> = Object.keys(lookupAPIMap).reduce((acc, key) => {
+					acc[key] = key;
+					return acc;
+				}, {} as Record<string, string>);
+		
 		await joplin.settings.registerSettings({
 		[model.currentAPIChoice]: {
-			value: 'dictionaryapi.dev',
+			value: model.dictionaryAPI,
 			type: SettingItemType.String,
 			section: model.SECTION,
 			public: true,
+			isEnum: true,
+			options: apiChoices,
 			label: "Current API to use for lookups",
 			description: '(applies on restart)',
+			storage: SettingStorage.Database,
+		},
+		});
+
+		const primaryAPI = await joplin.settings.value(model.currentAPIChoice);
+		const defaultFallback = Object.keys(lookupAPIMap).find(key => key !== primaryAPI);
+
+		await joplin.settings.registerSettings({
+		[model.fallbackAPIChoice]: {
+			value: defaultFallback,
+			type: SettingItemType.String,
+			section: model.SECTION,
+			public: true,
+			isEnum: true,
+			options: apiChoices,
+			advanced: true,
+			label: "Fallback API to use for lookups",
+			description: '(applies on restart, defaults to first non-primary API option)',
 			storage: SettingStorage.Database,
 		},
 		});
