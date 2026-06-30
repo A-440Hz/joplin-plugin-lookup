@@ -1,6 +1,6 @@
 import joplin from 'api';
 import { appendToHistory, lookupAPIMap, model, performPrimaryLookup } from './model';
-import { createLookupPanel, reloadHistoryFromSettings, showLookupPanel } from './panel';
+import { createLookupPanel, refreshLookupPanel, reloadHistoryFromSettings, showLookupPanel } from './panel';
 import { MenuItemLocation, SettingItemType, SettingStorage, ToolbarButtonLocation } from 'api/types';
 
 joplin.plugins.register({
@@ -47,8 +47,9 @@ joplin.plugins.register({
 			label: 'Show Lookup History',
 			iconName: 'fas fa-history',
 			execute: async () => {
-				await reloadHistoryFromSettings();
-				await showLookupPanel();
+				console.log(await joplin.settings.value(model.lookupHistory))
+				// await reloadHistoryFromSettings();
+				// await showLookupPanel();
 			}
 		})
 
@@ -69,11 +70,11 @@ joplin.plugins.register({
 				await showLookupPanel();
 			}
 		});
-		
-				const apiChoices: Record<string, string> = Object.keys(lookupAPIMap).reduce((acc, key) => {
-					acc[key] = key;
-					return acc;
-				}, {} as Record<string, string>);
+
+		const apiChoices: Record<string, string> = Object.keys(lookupAPIMap).reduce((acc, key) => {
+			acc[key] = key;
+			return acc;
+		}, {} as Record<string, string>);
 		
 		await joplin.settings.registerSettings({
 		[model.currentAPIChoice]: {
@@ -148,6 +149,7 @@ joplin.plugins.register({
 			iconName: 'fas fa-search',
 			execute: async () => {
 				const isOpen = (await joplin.views.panels.visible(lookupPanel)).valueOf();
+				await reloadHistoryFromSettings()
 				await joplin.views.panels.show(lookupPanel, !isOpen);				
 			},
 		});

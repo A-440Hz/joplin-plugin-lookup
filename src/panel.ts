@@ -20,14 +20,15 @@ export async function refreshLookupPanel(): Promise<void> {
 	currentPage = Math.min(currentPage, totalPages - 1);
 	const items = fullHistory.slice(currentPage * pageSize, (currentPage + 1) * pageSize);
 
-	joplin.views.panels.postMessage(lookupPanelHandle, {
+	const updateMessage = {
 		type: 'update',
 		items,
 		page: currentPage,
 		totalPages,
 		pageSize,
 		totalItems,
-	});
+	};
+	joplin.views.panels.postMessage(lookupPanelHandle, updateMessage);
 }
 
 export async function reloadHistoryFromSettings(): Promise<void> {
@@ -44,6 +45,10 @@ export async function showLookupPanel(): Promise<void> {
 
 async function handlePanelMessage(message: { type: string; page?: number; pageSize?: number }): Promise<void> {
 	switch (message.type) {
+	case 'ready': {
+		await reloadHistoryFromSettings();
+		break;
+	}
 	case 'setPage': {
 		const totalPages = Math.max(1, Math.ceil(fullHistory.length / pageSize));
 		const page = Math.max(0, Math.min(message.page ?? 0, totalPages - 1));
@@ -69,18 +74,30 @@ async function handlePanelMessage(message: { type: string; page?: number; pageSi
 	}
 }
 
+function getHtmlContent(): string {
+	return `
+<!DOCTYPE html>
+<html>
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
+<body>
+	<div id="lookup-root"></div>
+</body>
+</html>
+	`;
+}
+
 export async function createLookupPanel(): Promise<ViewHandle> {
 	lookupPanelHandle = await joplin.views.panels.create('lookupPanel');
 
-	await joplin.views.panels.setHtml(lookupPanelHandle, '<div id="lookup-root"></div>');
-	await joplin.views.panels.addScript(lookupPanelHandle, './webview.js');
+	const html = getHtmlContent();
+	await joplin.views.panels.setHtml(lookupPanelHandle, html);
 	await joplin.views.panels.addScript(lookupPanelHandle, './webview.css');
-
+	await joplin.views.panels.addScript(lookupPanelHandle, './webview.js');
+	
 	await joplin.views.panels.onMessage(lookupPanelHandle, handlePanelMessage);
-
-	await loadHistoryFromSettings();
-	currentPage = 0;
-	await refreshLookupPanel();
-
+	
 	return lookupPanelHandle;
 }

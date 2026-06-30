@@ -6,7 +6,6 @@ export namespace model {
     export const resultsPerPage = "PL_ResultsPerPage";
     export const currentAPIChoice = "PL_CurrentAPIChoice";
     export const fallbackAPIChoice = "PL_FallbackAPIChoice";
-    export const lookupHistoryKey = 'PL_LookupHistoryKey';
 
     // user preferences
     export const showToolbarIcon = 'PL_ShowToolbarIcon';

@@ -1,6 +1,8 @@
 /* global webviewApi */
 
 (function() {
+	console.log('LOOKUP Webview initializing, sending ready message...');
+
 	const PAGE_SIZE_OPTIONS = [4, 8, 12, 16, 20];
 
 	/** @type {Map<number, { meaningIndex: number, definitionIndex: number, expanded: boolean }>} */
@@ -133,6 +135,7 @@
 	}
 
 	function renderTopBar(data) {
+		console.log("context: renderTopBar(data)")
 		const prevDisabled = data.page === 0 ? ' disabled' : '';
 		const nextDisabled = data.page >= data.totalPages - 1 ? ' disabled' : '';
 
@@ -165,12 +168,18 @@
 	}
 
 	function renderPanel(data) {
+		console.log("context: renderPanel(data)")
 		panelData = data;
 		itemState.clear();
 
 		const itemsHtml = data.items.length > 0
 			? data.items.map((item, i) => renderLookupItem(item, i)).join('')
 			: '<p class="lookup-empty">No lookup history yet.</p>';
+
+		if (!root) {
+			console.log("THERES NO ROOT (renderPanel)")
+			return;
+		}
 
 		root.innerHTML = `<div class="lookup-panel">
 			${renderTopBar(data)}
@@ -218,6 +227,11 @@
 		rerenderItem(itemIndex);
 	}
 
+	if (!root) {
+		console.log("THERES NO ROOT (webview.js)")
+		return;
+	}
+
 	root.addEventListener('click', (e) => {
 		const target = e.target;
 
@@ -253,8 +267,11 @@
 	});
 
 	webviewApi.onMessage((message) => {
+		console.log('Webview message received: ', message);
 		if (message.type === 'update') {
 			renderPanel(message);
 		}
 	});
+
+	webviewApi.postMessage({ type: 'ready' });
 })();
