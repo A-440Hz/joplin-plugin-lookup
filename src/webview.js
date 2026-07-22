@@ -4,12 +4,29 @@
 	var pageSizeOptions = [4, 8, 12, 16, 20];
 	var itemState = new Map();
 	var panelData = null;
-	var root = null;
-	var api = typeof window !== 'undefined' && window.webviewApi ? window.webviewApi : (typeof webviewApi !== 'undefined' ? webviewApi : null);
+	// var api = typeof window !== 'undefined' && window.webviewApi ? window.webviewApi : (typeof webviewApi !== 'undefined' ? webviewApi : null);
 
 	var elements = {
-		root: null
+		root: document.getElementById('lookup-root'),
+		prevButton: document.getElementById('lookup-prev-page'),
+		nextButton: document.getElementById('lookup-next-page')
 	};
+
+	elements.prevButton.addEventListener('click', function() {
+		if (panelData && panelData.page > 0) {
+			console.log('Sending setPage message for previous page:', panelData.page - 1);
+
+			webviewApi.postMessage({ message: 'setPage', page: panelData.page - 1 });
+		}
+	});
+
+	elements.nextButton.addEventListener('click', function() {
+		if (panelData && panelData.page < panelData.totalPages - 1) {
+			console.log('Sending setPage message for next page:', panelData.page + 1);
+			webviewApi.postMessage({ message: 'setPage', page: panelData.page + 1 });
+		}
+	});
+
 
 	function escapeHtml(text) {
 		var div = document.createElement('div');
@@ -158,6 +175,7 @@
 		'</div>';
 	}
 
+	// renderPanel returns a list of items within the currently selected window, along with the current page and total pages. It also updates the itemState map to clear any previous state.
 	function renderPanel(data) {
 		console.log('Webview received update message:', data);
 		panelData = data;
@@ -215,11 +233,11 @@
 		rerenderItem(itemIndex);
 	}
 
-	function getApi() {
-		return typeof window !== 'undefined' && window.webviewApi
-			? window.webviewApi
-			: (typeof webviewApi !== 'undefined' ? webviewApi : null);
-	}
+	// function getApi() {
+	// 	return typeof window !== 'undefined' && window.webviewApi
+	// 		? window.webviewApi
+	// 		: (typeof webviewApi !== 'undefined' ? webviewApi : null);
+	// }
 
 	function init() {
 		root = document.getElementById('lookup-root');
@@ -230,17 +248,17 @@
 			return;
 		}
 
-		api = getApi();
-		if (!api) {
-			setTimeout(init, 100);
-			return;
-		}
+		// api = getApi();
+		// if (!api) {
+		// 	setTimeout(init, 100);
+		// 	return;
+		// }
 
 		if (!elements.root.innerHTML.trim()) {
 			elements.root.innerHTML = '<div class="lookup-panel"><p class="lookup-empty">Loading lookup history…</p></div>';
 		}
 
-		api.onMessage(function(message) {
+		webviewApi.onMessage(function(message) {
 			console.log('Webview received message:', message);
 			if (message.type === 'update') {
 				renderPanel(message);
@@ -248,7 +266,7 @@
 		});
 
 		console.log('Webview initializing, sending ready message...');
-		api.postMessage({ message: 'ready' })
+		webviewApi.postMessage({ message: 'ready' })
 			.then(function(response) {
 				console.log('Received response from ready:', response);
 			})
@@ -256,41 +274,41 @@
 				console.error('Error sending ready message:', err);
 			});
 
-		elements.root.addEventListener('click', function(e) {
-			var target = e.target;
-			if (!(target instanceof Element)) return;
+		// elements.root.addEventListener('click', function(e) {
+		// 	var target = e.target;
+		// 	if (!(target instanceof Element)) return;
 
-			if (target.matches('[data-action="prev-page"]') && !target.disabled) {
-				api.postMessage({ message: 'setPage', page: panelData.page - 1 });
-				return;
-			}
-			if (target.matches('[data-action="next-page"]') && !target.disabled) {
-				api.postMessage({ message: 'setPage', page: panelData.page + 1 });
-				return;
-			}
-			if (target.matches('[data-action="clear-history"]')) {
-				api.postMessage({ message: 'clearHistory' });
-				return;
-			}
+		// 	if (target.matches('[data-action="prev-page"]') && !target.disabled) {
+		// 		api.postMessage({ message: 'setPage', page: panelData.page - 1 });
+		// 		return;
+		// 	}
+		// 	if (target.matches('[data-action="next-page"]') && !target.disabled) {
+		// 		api.postMessage({ message: 'setPage', page: panelData.page + 1 });
+		// 		return;
+		// 	}
+		// 	if (target.matches('[data-action="clear-history"]')) {
+		// 		api.postMessage({ message: 'clearHistory' });
+		// 		return;
+		// 	}
 
-			var actionEl = target.closest('[data-action]');
-			if (!actionEl) return;
+		// 	var actionEl = target.closest('[data-action]');
+		// 	if (!actionEl) return;
 
-			var itemEl = actionEl.closest('[data-item-index]');
-			if (!itemEl) return;
+		// 	var itemEl = actionEl.closest('[data-item-index]');
+		// 	if (!itemEl) return;
 
-			var itemIndex = parseInt(itemEl.dataset.itemIndex, 10);
-			handleItemAction(itemIndex, actionEl.dataset.action);
-		});
+		// 	var itemIndex = parseInt(itemEl.dataset.itemIndex, 10);
+		// 	handleItemAction(itemIndex, actionEl.dataset.action);
+		// });
 
-		elements.root.addEventListener('change', function(e) {
-			var target = e.target;
-			if (!(target instanceof Element)) return;
-			if (target.matches('[data-action="page-size"]')) {
-				var pageSize = parseInt(target.value, 10);
-				api.postMessage({ message: 'setPageSize', pageSize: pageSize });
-			}
-		});
+		// elements.root.addEventListener('change', function(e) {
+		// 	var target = e.target;
+		// 	if (!(target instanceof Element)) return;
+		// 	if (target.matches('[data-action="page-size"]')) {
+		// 		var pageSize = parseInt(target.value, 10);
+		// 		api.postMessage({ message: 'setPageSize', pageSize: pageSize });
+		// 	}
+		// });
 	}
 
 	if (document.readyState === 'loading') {

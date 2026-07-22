@@ -85,7 +85,6 @@ joplin.plugins.register({
 			isEnum: true,
 			options: apiChoices,
 			label: "Current API to use for lookups",
-			description: '(applies on restart)',
 			storage: SettingStorage.Database,
 		},
 		});
@@ -103,7 +102,7 @@ joplin.plugins.register({
 			options: apiChoices,
 			advanced: true,
 			label: "Fallback API to use for lookups",
-			description: '(applies on restart, defaults to first non-primary API option)',
+			description: 'defaults to first non-primary API option',
 			storage: SettingStorage.Database,
 		},
 		});
@@ -135,6 +134,13 @@ joplin.plugins.register({
 		}).then(() => {
 			console.info('Lookup: Registered panelAlwaysStartsClosed setting: ', joplin.settings.value(model.panelAlwaysStartsClosed));
 		})
+
+		// re-draw the lookup panel when the resultsPerPage setting changes
+		await joplin.settings.onChange(async (event: any) => {
+			if (event.keys.includes(model.resultsPerPage)) {
+				await reloadHistoryFromSettings();
+			}
+		});
 
 		// create lookup panel
 		const lookupPanel = await createLookupPanel();

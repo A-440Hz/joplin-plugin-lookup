@@ -145,8 +145,8 @@ body {
 .lookup-item__expand {
 	flex-shrink: 0;
 	padding: 2px 8px;
-	border: 1px solid rgba(128, 128, 128, 0.4);
-	border-radius: 6px;
+	/* border: 1px solid rgba(128, 128, 128, 0.4); */
+	/* border-radius: 6px; */
 	background: rgba(128, 128, 128, 0.12);
 	cursor: pointer;
 	font-size: 12px;

@@ -100,6 +100,8 @@ function getLookupHtmlContent(): string {
 		<div class="lookup-panel">
 			<div class="lookup-topbar">
 				<div class="lookup-topbar__nav">
+					<button id="lookup-prev-page" class="lookup-prev-page" type="button" title="Previous page">←</button>
+					<button id="lookup-next-page" class="lookup-next-page" type="button" title="Next page">→</button>
 					<span class="lookup-topbar__page-info">${currentPageInfo}</span>
 				</div>
 			</div>
