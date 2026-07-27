@@ -1,32 +1,62 @@
 /* global webviewApi */
 
 (function() {
-	var pageSizeOptions = [4, 8, 12, 16, 20];
-	var itemState = new Map();
-	var panelData = null;
-	// var api = typeof window !== 'undefined' && window.webviewApi ? window.webviewApi : (typeof webviewApi !== 'undefined' ? webviewApi : null);
+	console.log('webview script loaded');
+	// var pageSizeOptions = [4, 8, 12, 16, 20];
+	var itemState = new Map(); // key: item index, value: { meaningIndex, definitionIndex, expanded }
+	var inMemoryItems = null; // panelData
 
-	var elements = {
-		root: document.getElementById('lookup-root'),
-		prevButton: document.getElementById('lookup-prev-page'),
-		nextButton: document.getElementById('lookup-next-page')
-	};
+	var root = document.getElementById('lookup-root');
 
-	elements.prevButton.addEventListener('click', function() {
-		if (panelData && panelData.page > 0) {
-			console.log('Sending setPage message for previous page:', panelData.page - 1);
+	function bindPanelActions() {
+		if (!root) return;
 
-			webviewApi.postMessage({ message: 'setPage', page: panelData.page - 1 });
-		}
-	});
+		root.addEventListener('click', function(e) {
+			var target = e.target;
+			var el = (target instanceof Element) ? target : (target && target.parentElement) ? target.parentElement : null;
+			if (!el) {
+				console.log('click event with non-element target', target);
+				return;
+			}
 
-	elements.nextButton.addEventListener('click', function() {
-		if (panelData && panelData.page < panelData.totalPages - 1) {
-			console.log('Sending setPage message for next page:', panelData.page + 1);
-			webviewApi.postMessage({ message: 'setPage', page: panelData.page + 1 });
-		}
-	});
+			var actionButton = el.closest('[data-action]');
+			if (!actionButton) return;
 
+			var action = actionButton.getAttribute('data-action');
+			console.log('click action detected:', action);
+
+			switch (action) {
+			case 'prev-page':
+				if (!panelData || panelData.page <= 0) return;
+				webviewApi.postMessage({ message: 'setPage', page: panelData.page - 1 });
+				return;
+			case 'next-page':
+				if (!panelData || panelData.page >= panelData.totalPages - 1) return;
+				webviewApi.postMessage({ message: 'setPage', page: panelData.page + 1 });
+				return;
+			case 'clear-history':
+				webviewApi.postMessage({ message: 'clearHistory' });
+				return;
+			case 'toggle-expand':
+			case 'cycle-meaning':
+			case 'cycle-definition':
+				var itemEl = actionButton.closest('[data-item-index]');
+				if (!itemEl) return;
+				var itemIndex = parseInt(itemEl.dataset.itemIndex, 10);
+				handleItemAction(itemIndex, action);
+				return;
+			}
+		});
+
+		root.addEventListener('change', function(e) {
+			var target = e.target;
+			if (!(target instanceof Element)) return;
+			if (target.matches('[data-action="page-size"]')) {
+				var pageSize = parseInt(target.value, 10);
+				webviewApi.postMessage({ message: 'setPageSize', pageSize: pageSize });
+			}
+		});
+	}
 
 	function escapeHtml(text) {
 		var div = document.createElement('div');
@@ -181,23 +211,23 @@
 		panelData = data;
 		itemState.clear();
 
-		var itemsHtml = data.items.length > 0
+		var itemsHtml = Array.isArray(data.items) && data.items.length > 0
 			? data.items.map(function(item, i) {
 				return renderLookupItem(item, i);
 			}).join('')
 			: '<p class="lookup-empty">No lookup history yet.</p>';
 
-		if (!elements.root) {
+		if (!root) {
 			console.log('No root element found');
 			return;
 		}
 
-		elements.root.innerHTML = '<div class="lookup-panel">' + renderTopBar(data) + '<div class="lookup-list">' + itemsHtml + '</div></div>';
+		root.innerHTML = '<div class="lookup-panel">' + renderTopBar(data) + '<div class="lookup-list">' + itemsHtml + '</div></div>';
 	}
 
 	function rerenderItem(index) {
 		if (!panelData || !panelData.items[index]) return;
-		var itemEl = elements.root.querySelector('[data-item-index="' + index + '"]');
+		var itemEl = root.querySelector('[data-item-index="' + index + '"]');
 		if (!itemEl) return;
 
 		var temp = document.createElement('div');
@@ -233,87 +263,5 @@
 		rerenderItem(itemIndex);
 	}
 
-	// function getApi() {
-	// 	return typeof window !== 'undefined' && window.webviewApi
-	// 		? window.webviewApi
-	// 		: (typeof webviewApi !== 'undefined' ? webviewApi : null);
-	// }
 
-	function init() {
-		root = document.getElementById('lookup-root');
-		elements.root = root;
-
-		if (!root) {
-			setTimeout(init, 100);
-			return;
-		}
-
-		// api = getApi();
-		// if (!api) {
-		// 	setTimeout(init, 100);
-		// 	return;
-		// }
-
-		if (!elements.root.innerHTML.trim()) {
-			elements.root.innerHTML = '<div class="lookup-panel"><p class="lookup-empty">Loading lookup history…</p></div>';
-		}
-
-		webviewApi.onMessage(function(message) {
-			console.log('Webview received message:', message);
-			if (message.type === 'update') {
-				renderPanel(message);
-			}
-		});
-
-		console.log('Webview initializing, sending ready message...');
-		webviewApi.postMessage({ message: 'ready' })
-			.then(function(response) {
-				console.log('Received response from ready:', response);
-			})
-			.catch(function(err) {
-				console.error('Error sending ready message:', err);
-			});
-
-		// elements.root.addEventListener('click', function(e) {
-		// 	var target = e.target;
-		// 	if (!(target instanceof Element)) return;
-
-		// 	if (target.matches('[data-action="prev-page"]') && !target.disabled) {
-		// 		api.postMessage({ message: 'setPage', page: panelData.page - 1 });
-		// 		return;
-		// 	}
-		// 	if (target.matches('[data-action="next-page"]') && !target.disabled) {
-		// 		api.postMessage({ message: 'setPage', page: panelData.page + 1 });
-		// 		return;
-		// 	}
-		// 	if (target.matches('[data-action="clear-history"]')) {
-		// 		api.postMessage({ message: 'clearHistory' });
-		// 		return;
-		// 	}
-
-		// 	var actionEl = target.closest('[data-action]');
-		// 	if (!actionEl) return;
-
-		// 	var itemEl = actionEl.closest('[data-item-index]');
-		// 	if (!itemEl) return;
-
-		// 	var itemIndex = parseInt(itemEl.dataset.itemIndex, 10);
-		// 	handleItemAction(itemIndex, actionEl.dataset.action);
-		// });
-
-		// elements.root.addEventListener('change', function(e) {
-		// 	var target = e.target;
-		// 	if (!(target instanceof Element)) return;
-		// 	if (target.matches('[data-action="page-size"]')) {
-		// 		var pageSize = parseInt(target.value, 10);
-		// 		api.postMessage({ message: 'setPageSize', pageSize: pageSize });
-		// 	}
-		// });
-	}
-
-	if (document.readyState === 'loading') {
-		document.addEventListener('DOMContentLoaded', init);
-	} else {
-		init();
-	}
 })();
