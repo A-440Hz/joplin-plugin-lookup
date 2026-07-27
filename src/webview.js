@@ -2,11 +2,28 @@
 
 (function() {
 	console.log('webview script loaded');
-	// var pageSizeOptions = [4, 8, 12, 16, 20];
+	var pageSizeOptions = [4, 8, 12, 16, 20];
 	var itemState = new Map(); // key: item index, value: { meaningIndex, definitionIndex, expanded }
 	var inMemoryItems = null; // panelData
 
 	var root = document.getElementById('lookup-root');
+
+	webviewApi.postMessage({ message: 'ready' }).then(function(response) {
+		console.log('Received response from ready:', response);
+	})
+	.catch(function(err) {
+		console.error('Error sending ready message:', err);
+	});
+
+	webviewApi.onMessage(function(event) {
+		console.log('webview received message:', event);
+		message = event && event.message !== undefined ? event.message : event;
+		if (message.type === 'update') {
+			renderPanel(message);
+		} else {
+			console.warn('webview received unknown message type:', message.type);
+		}
+	})
 
 	function bindPanelActions() {
 		if (!root) return;
@@ -57,6 +74,7 @@
 			}
 		});
 	}
+	bindPanelActions();
 
 	function escapeHtml(text) {
 		var div = document.createElement('div');

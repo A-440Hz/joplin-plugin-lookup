@@ -62,22 +62,22 @@ function getLookupHtmlContent(): string {
 	<meta name="viewport" content="width=device-width, initial-scale=1.0">
 </head>
 <body>
-	<div id="lookup-root"></div>
+	<div id="lookup-root">
+		<div class="lookup-panel">
+			<div class="lookup-topbar">
+				<div class="lookup-topbar__nav">
+					<button id="lookup-prev-page" class="lookup-prev-page" type="button" title="Previous page">←</button>
+					<button id="lookup-next-page" class="lookup-next-page" type="button" title="Next page">→</button>
+					<span class="lookup-topbar__page-info"></span>
+				</div>
+			</div>
+			<div class="lookup-list"></div>
+		</div>
+	</div>
 </body>
 </html>
 	`;
 }
-
-		// <div class="lookup-panel">
-		// 	<div class="lookup-topbar">
-		// 		<div class="lookup-topbar__nav">
-		// 			<button id="lookup-prev-page" class="lookup-prev-page" type="button" title="Previous page">←</button>
-		// 			<button id="lookup-next-page" class="lookup-next-page" type="button" title="Next page">→</button>
-		// 			<span class="lookup-topbar__page-info"></span>
-		// 		</div>
-		// 	</div>
-		// 	<div class="lookup-list"></div>
-		// </div>
 
 function setupLookupMessageHandler(): void {
 	joplin.views.panels.onMessage(lookupPanelHandle, async (message: any) => {
