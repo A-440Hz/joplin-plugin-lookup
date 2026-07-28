@@ -172,6 +172,10 @@
 			: '';
 
 		var expandIcon = state.expanded ? '▲' : '▼';
+		var sourceText = escapeHtml(item.source || '');
+		var sourceHtml = item.link ?
+			'<a href="' + escapeHtml(item.link) + '" target="_blank" rel="noopener noreferrer">' + sourceText + '</a>'
+			: sourceText;
 
 		if (!item.meanings || item.meanings.length === 0) {
 			var errorText = item.descriptor || 'No results';
@@ -182,7 +186,7 @@
 					'</h3>' +
 				'</header>' +
 				'<p class="lookup-item__error">' + escapeHtml(errorText) + '</p>' +
-				'<footer class="lookup-item__source">' + escapeHtml(item.source) + '</footer>' +
+				'<footer class="lookup-item__source">' + sourceHtml + '</footer>' +
 			'</article>';
 		}
 
@@ -211,7 +215,7 @@
 				'<button class="lookup-item__expand" type="button" data-action="toggle-expand" aria-expanded="' + state.expanded + '" title="Expand">' + expandIcon + '</button>' +
 			'</header>' +
 			'<div class="lookup-item__body">' + bodyHtml + '</div>' +
-			'<footer class="lookup-item__source">' + escapeHtml(item.source) + '</footer>' +
+			'<footer class="lookup-item__source">' + sourceHtml + '</footer>' +
 		'</article>';
 	}
 

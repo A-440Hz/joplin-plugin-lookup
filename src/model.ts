@@ -61,6 +61,7 @@ export interface LookupItem {
     descriptor?: string;
     meanings: LookupMeaning[];
     source: string;
+    link: string;
 }
 
 function createErrorLookup(query: string, err: Error, source: string): LookupItem {
@@ -69,6 +70,7 @@ function createErrorLookup(query: string, err: Error, source: string): LookupIte
         descriptor: "Error: " + err.message,
         meanings: [],
         source: source,
+        link: ""
     };
 }
 
@@ -158,6 +160,7 @@ export async function lookupFromDictionaryAPI(query: string): Promise<LookupItem
             descriptor: entry.phonetic? entry.phonetic : undefined,
             meanings,
             source: "Dictionary API",
+            link: ""
         };
     } catch (error) {
         throw error;
@@ -182,11 +185,14 @@ export async function lookupFromWikipediaAPI(query: string): Promise<LookupItem>
             throw new APIError("Invalid Wikipedia API response");
         }
 
+        const link = data.content_urls?.desktop?.page || data.content_urls?.mobile?.page || undefined;
+
         return {
             query: trimmedQuery,
             descriptor: data.description? data.description : undefined,
             meanings: [data.extract ? { definitions: [{ definition: data.extract }] } : { definitions: [] } ],
             source: "Wikipedia API",
+            link: link || "",
         };
     } catch (error) {
         throw error;
