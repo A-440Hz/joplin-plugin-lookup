@@ -113,7 +113,7 @@ joplin.plugins.register({
 			type: SettingItemType.Bool,
 			section: model.SECTION,
 			public: true,
-			label: "Show the 'toggle lootbox panel' button in the toolbar",
+			label: "Show the 'toggle lookup panel' button in the toolbar",
 			description: '(applies on restart)',
 			storage: SettingStorage.Database,
 		},
@@ -163,11 +163,18 @@ joplin.plugins.register({
 			await joplin.views.toolbarButtons.create('toggleLookupPanelButton', 'toggleLookupPanel', ToolbarButtonLocation.NoteToolbar);
 		}
 		
+		//create keyboard shortcut to open panel
+		await joplin.views.menuItems.create(
+			'toggleLookupPanel.menuItem',
+			'toggleLookupPanel',
+			MenuItemLocation.View,
+			{ accelerator: 'CmdOrCtrl+4' },
+		)
+
 		await joplin.views.menuItems.create(
 			'lookup.contextMenu',
 			'lookup',
 			MenuItemLocation.EditorContextMenu,
-			{ accelerator: 'CmdOrCtrl+Shift+L' },
 		);
 	},
 });

@@ -2,14 +2,14 @@
 
 (function() {
 	console.log('webview script loaded');
-	var pageSizeOptions = [4, 8, 12, 16, 20];
+	var pageSizeOptions = [3, 4, 5, 6, 8, 10, 12, 20];
 	var itemState = new Map(); // key: item index, value: { meaningIndex, definitionIndex, expanded }
-	var inMemoryItems = null; // panelData
 
 	var root = document.getElementById('lookup-root');
 
 	webviewApi.postMessage({ message: 'ready' }).then(function(response) {
 		console.log('Received response from ready:', response);
+		bindPanelActions();
 	})
 	.catch(function(err) {
 		console.error('Error sending ready message:', err);
@@ -60,7 +60,7 @@
 				var itemEl = actionButton.closest('[data-item-index]');
 				if (!itemEl) return;
 				var itemIndex = parseInt(itemEl.dataset.itemIndex, 10);
-				handleItemAction(itemIndex, action);
+				handleItemAction(itemIndex, action, 1);
 				return;
 			}
 		});
@@ -73,8 +73,32 @@
 				webviewApi.postMessage({ message: 'setPageSize', pageSize: pageSize });
 			}
 		});
+
+		root.addEventListener('contextmenu', function(e) {
+			var target = e.target;
+			var el = (target instanceof Element) ? target : (target && target.parentElement) ? target.parentElement : null;
+			if (!el) {
+				console.log('right click event with non-element target', target);
+				return;
+			}
+
+			var actionButton = el.closest('[data-action]');
+			if (!actionButton) return;
+			var action = actionButton.getAttribute('data-action');
+			console.log('right click action detected:', action);
+
+			switch (action) {
+			case 'cycle-meaning':
+			case 'cycle-definition':
+				var itemEl = actionButton.closest('[data-item-index]');
+				if (!itemEl) return;
+				var itemIndex = parseInt(itemEl.dataset.itemIndex, 10);
+				handleItemAction(itemIndex, action, -1);
+				return;
+			}
+
+		});
 	}
-	bindPanelActions();
 
 	function escapeHtml(text) {
 		var div = document.createElement('div');
@@ -219,7 +243,7 @@
 					'per page' +
 				'</label>' +
 			'</div>' +
-			'<button class="lookup-topbar__delete" type="button" data-action="clear-history" title="Clear history">delete</button>' +
+			'<button class="lookup-topbar__delete" type="button" data-action="clear-history" title="Clear history" aria-label="Clear history">clear history</button>' +
 		'</div>';
 	}
 
@@ -253,7 +277,7 @@
 		itemEl.replaceWith(temp.firstElementChild);
 	}
 
-	function handleItemAction(itemIndex, action) {
+	function handleItemAction(itemIndex, action, incr) {
 		var item = panelData && panelData.items[itemIndex];
 		if (!item || !item.meanings || item.meanings.length === 0) return;
 
@@ -265,13 +289,19 @@
 			break;
 		case 'cycle-meaning':
 			var meaningCount = item.meanings.length;
-			state.meaningIndex = (state.meaningIndex + 1) % meaningCount;
+			state.meaningIndex = (state.meaningIndex + incr) % meaningCount;
+			if (state.meaningIndex < 0) {
+				state.meaningIndex = meaningCount + incr;
+			}
 			state.definitionIndex = 0;
 			break;
 		case 'cycle-definition':
 			var meaning = item.meanings[state.meaningIndex];
 			if (meaning && meaning.definitions.length > 0) {
-				state.definitionIndex = (state.definitionIndex + 1) % meaning.definitions.length;
+				state.definitionIndex = (state.definitionIndex + incr) % meaning.definitions.length;
+			}
+			if (state.definitionIndex < 0) {
+				state.definitionIndex = meaning.definitions.length + incr;
 			}
 			break;
 		default:
