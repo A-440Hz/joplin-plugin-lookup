@@ -1,5 +1,13 @@
-# Joplin Plugin
+# Lookup plugin for Joplin
 
-This is your new Joplin plugin. It is suggested that you use this README file to document your plugin.
+Look up definitions for words directly from Joplin. 
 
-For information on how to build or publish the plugin, please see [GENERATOR_DOC.md](./GENERATOR_DOC.md)
+## Usage
+
+- Install the plugin from the Joplin plugin repository (search "Lookup").
+- Right click a highlighted word to perform a lookup query.
+- For results with multiple meanings, left click to toggle display selection forward, and right click to toggle selection backwards.
+- Click the 'expand' arrow to display all meanings at once.
+- Toggle the panel with Ctrl+4 shortcut, or with the lookup icon in the Joplin context bar.
+- Specify which API endpoint to query by default in the Joplin settings page of the plugin.
+- Wikipedia API definitions include a link to the wiki page.
