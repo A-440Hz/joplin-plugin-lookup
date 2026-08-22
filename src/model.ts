@@ -1,4 +1,5 @@
 import joplin from "api";
+import { parseEtymOnlineHtml } from "./parseHtml";
 
 export namespace model {
     export const SECTION = 'SectionPluginLookup';
@@ -14,6 +15,7 @@ export namespace model {
     // api options
     export const dictionaryAPI = 'dictionaryapi.dev';
     export const wikipediaAPI = 'wikipedia.org';
+    export const etymonlineAPI = 'etymonline.com';
 }
 
 const defaultAPI = model.dictionaryAPI;
@@ -35,10 +37,12 @@ class APIError extends Error {
 
 const DICTIONARY_API_BASE = 'https://api.dictionaryapi.dev/api/v2/entries/en/';
 const WIKIPEDIA_API_BASE = 'https://en.wikipedia.org/api/rest_v1/page/summary/';
+const ETYMONLINE_API_BASE = 'https://www.etymonline.com/word/';
 
 export const lookupAPIMap: Record<string, (query: string) => Promise<LookupItem>> = {
     [model.dictionaryAPI]: lookupFromDictionaryAPI,
     [model.wikipediaAPI]: lookupFromWikipediaAPI,
+    [model.etymonlineAPI]: LookupFromEtymOnline,
 };
 
 export interface LookupDefinition {
@@ -197,6 +201,40 @@ export async function lookupFromWikipediaAPI(query: string): Promise<LookupItem>
     } catch (error) {
         throw error;
     }
+}
+
+export async function LookupFromEtymOnline(query: string): Promise<LookupItem> {
+    // extract this part later
+    const trimmedQuery = query?.trim();
+    if (!trimmedQuery) {
+        throw new QueryError("Query cannot be empty or whitespace");
+    }
+    const url = `${ETYMONLINE_API_BASE}${encodeURIComponent(trimmedQuery)}`;
+
+    try {
+        const response = await fetch(url, {
+            headers: {
+                "User-Agent": "Mozilla/5.0",
+            },
+        });
+        if (!response.ok) {
+            throw new APIError("Failed to fetch EtymOnline data");
+        }
+        const data = await response.text();
+        console.log("EtymOnline API response:", data);
+        const parsedMeanings = parseEtymOnlineHtml(data);
+        // Process the EtymOnline API response and return the LookupItem
+        return {
+            query: trimmedQuery,
+            descriptor: undefined,
+            meanings: parsedMeanings,
+            source: "Etymonline API",
+            link: url || "",
+        };
+    } catch (error) {
+        throw error;
+    }
+    return null as unknown as LookupItem; // Placeholder return, replace with actual processing logic
 }
 
 export async function appendToHistory(newItem: LookupItem): Promise<void> {
