@@ -221,20 +221,21 @@ export async function LookupFromEtymOnline(query: string): Promise<LookupItem> {
             throw new APIError("Failed to fetch EtymOnline data");
         }
         const data = await response.text();
-        console.log("EtymOnline API response:", data);
-        const parsedMeanings = parseEtymOnlineHtml(data);
+        const parsedMeanings = parseEtymOnlineHtml(trimmedQuery, data);
+        if (parsedMeanings.length === 0) {
+            throw new APIError("No valid results found for this query");
+        }
+
         // Process the EtymOnline API response and return the LookupItem
         return {
             query: trimmedQuery,
-            descriptor: undefined,
             meanings: parsedMeanings,
-            source: "Etymonline API",
-            link: url || "",
+            source: "EtymOnline",
+            link: url,
         };
     } catch (error) {
         throw error;
     }
-    return null as unknown as LookupItem; // Placeholder return, replace with actual processing logic
 }
 
 export async function appendToHistory(newItem: LookupItem): Promise<void> {
