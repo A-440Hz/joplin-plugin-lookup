@@ -264,6 +264,8 @@ const extraScriptConfig = {
 
 const createArchiveConfig = {
 	stats: 'errors-only',
+	target: 'node',
+	externalsPresets: { node: true },
 	entry: './dist/index.js',
 	resolve: {
 		fallback: moduleFallback,
