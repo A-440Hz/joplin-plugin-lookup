@@ -7,6 +7,7 @@ Look up definitions for words directly from Joplin.
 ## Currently Supported:
  - Dictionary API (https://dictionaryapi.dev/)
  - Wikimedia REST API (https://www.mediawiki.org/wiki/Wikimedia_REST_API)
+ - Etymonline HTML parsing (https://www.etymonline.com/word/)
 
 ## Usage
 
