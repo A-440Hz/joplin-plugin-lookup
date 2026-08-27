@@ -137,8 +137,8 @@
 		if (!definition) return '';
 
 		var titleHtml = showTitle
-			? '<button class="lookup-definition__title" type="button" data-action="cycle-definition">definition ' + defIndex + ' <span class="lookup-index">(' + (defIndex + 1) + '/' + defCount + ')</span></button>'
-			: '<span class="lookup-definition__title-static">definition ' + defIndex + '</span>';
+			? '<button class="lookup-definition__title" type="button" data-action="cycle-definition">definition ' + ' <span class="lookup-index">(' + (defIndex + 1) + '/' + defCount + ')</span></button>'
+			: '<span class="lookup-definition__title-static">definition ' + (defIndex + 1) + '</span>';
 
 		return '<section class="lookup-definition">' + titleHtml + renderDefinitionContent(definition, meaning) + '</section>';
 	}
@@ -150,8 +150,8 @@
 			: '';
 
 		var titleHtml = collapsed
-			? '<button class="lookup-meaning__title" type="button" data-action="cycle-meaning">meaning ' + meaningIndex + ' <span class="lookup-index">(' + (meaningIndex + 1) + '/' + meaningCount + ')</span> ' + posHtml + '</button>'
-			: '<span class="lookup-meaning__title-static">meaning ' + meaningIndex + ' ' + posHtml + '</span>';
+			? '<button class="lookup-meaning__title" type="button" data-action="cycle-meaning"> ' + posHtml + ' <span class="lookup-index">(' + (meaningIndex + 1) + '/' + meaningCount + ')</span> ' + '</button>'
+			: '<span class="lookup-meaning__title-static"> ' + posHtml + '</span>';
 
 		var definitionsHtml;
 		if (collapsed) {
